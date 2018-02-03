@@ -207,8 +207,8 @@ outcmd(int ch, int count)
 	    ind++;
 	}
 	if (bytecell) {
-	    pr("static char mem[TAPELEN+TAPEOFF];");
-	    pr("register char *m = mem + TAPEOFF;");
+	    pr("static unsigned char mem[TAPELEN+TAPEOFF];");
+	    pr("register unsigned char *m = mem + TAPEOFF;");
 	    pr("register int v;");
 	} else {
 	    pr("static int mem[TAPELEN+TAPEOFF];");
