@@ -37,6 +37,7 @@ void start_runclock(void);
 void finish_runclock(double * prun_time, double *pwait_time);
 void pause_runclock(void);
 void unpause_runclock(void);
+void oututf8(int input_chr);
 
 int hex_bracket = -1;
 
@@ -418,9 +419,15 @@ void run(void)
 
 	case '.':
 	    profile[pgm[n].cmd*4]++;
-	    { int a = (mem[m] & 0xFF & cell_mask);
-	      if (!suppress_io) putchar(a);
-	      if (a != 13) nonl = (a != '\n'); }
+	    {
+		int a = (mem[m] & cell_mask);
+		if (a > physical_max) a -= (physical_max-physical_min+1);
+		if (!suppress_io) {
+		    if (cell_mask>255) oututf8(a);
+		    else putchar(a);
+		}
+		if (a != 13) nonl = (a != '\n');
+	    }
 	    break;
 	case ',':
 	    profile[pgm[n].cmd*4+1 + !!mem[m]]++;
@@ -871,4 +878,38 @@ unpause_runclock(void)
         { paused.tv_usec += 1000000; paused.tv_sec -= 1; }
     if (paused.tv_usec >= 1000000)
         { paused.tv_usec -= 1000000; paused.tv_sec += 1; }
+}
+
+/* Output a UTF-8 codepoint. */
+void
+oututf8(int input_chr)
+{
+    if (input_chr < 0x80) {            /* one-byte character */
+        putchar(input_chr);
+    } else if (input_chr < 0x800) {    /* two-byte character */
+        putchar(0xC0 | (0x1F & (input_chr >>  6)));
+        putchar(0x80 | (0x3F & (input_chr      )));
+    } else if (input_chr < 0x10000) {  /* three-byte character */
+        putchar(0xE0 | (0x0F & (input_chr >> 12)));
+        putchar(0x80 | (0x3F & (input_chr >>  6)));
+        putchar(0x80 | (0x3F & (input_chr      )));
+    } else if (input_chr < 0x200000) { /* four-byte character */
+        putchar(0xF0 | (0x07 & (input_chr >> 18)));
+        putchar(0x80 | (0x3F & (input_chr >> 12)));
+        putchar(0x80 | (0x3F & (input_chr >>  6)));
+        putchar(0x80 | (0x3F & (input_chr      )));
+    } else if (input_chr < 0x4000000) {/* five-byte character */
+        putchar(0xF8 | (0x03 & (input_chr >> 24)));
+        putchar(0x80 | (0x3F & (input_chr >> 18)));
+        putchar(0x80 | (0x3F & (input_chr >> 12)));
+        putchar(0x80 | (0x3F & (input_chr >>  6)));
+        putchar(0x80 | (0x3F & (input_chr      )));
+    } else {                           /* six-byte character */
+        putchar(0xFC | (0x01 & (input_chr >> 30)));
+        putchar(0x80 | (0x3F & (input_chr >> 24)));
+        putchar(0x80 | (0x3F & (input_chr >> 18)));
+        putchar(0x80 | (0x3F & (input_chr >> 12)));
+        putchar(0x80 | (0x3F & (input_chr >>  6)));
+        putchar(0x80 | (0x3F & (input_chr      )));
+    }
 }
